@@ -1,10 +1,10 @@
-# Reproducible Benchmarking of Keras and PyTorch Models
+# Benchmarking of Keras and PyTorch Pre-Trained Models
 
-This project benchmarks **every** pre-trained model in PyTorch and Keras (Tensorflow). Benchmarks are reproducible.
+Benchmarks for **every** pre-trained model in PyTorch and Keras-Tensorflow. Benchmarks are reproducible.
 
 ## Why this is helpful
 
-This project combines Keras and PyTorch benchmarks into a single framework, enabling researchers to quickly see under which platform a given model performs best. For example `resnet` architectures perform better in PyTorch and `inception` architectures perform better in Keras (see below).
+Combining Keras and PyTorch benchmarks into a single framework lets researchers decide which platform is best for a given model. For example `resnet` architectures perform better in PyTorch and `inception` architectures perform better in Keras (see below). These benchmarks serve as a standard from which to start new projects or debug current implementations. 
 
 For researchers exploring Keras and PyTorch models, these benchmarks serve as a standard from which to start new projects or debug current implementations. 
 
