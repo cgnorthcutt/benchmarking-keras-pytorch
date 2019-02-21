@@ -18,9 +18,45 @@ Below I provide a table of the **actual** validation set accuracies (verified on
 
 ## To Reproduce
 
+### Get the ImageNet validation dataset 
+
+* Download
+  * Download the Imagenet 2012 Validation dataset from [http://image-net.org/download-images](http://image-net.org/download-images) or [other options](http://academictorrents.com). This dataset contains 50000 images
+
+* Preprocess/Extract validation data
+  * Once `ILSVRC2012_img_val.tar` is downloaded, run:
+  ```bash
+  # Credit to Soumith: https://github.com/soumith/imagenet-multiGPU.torch
+  $ cd ../ && mkdir val && mv ILSVRC2012_img_val.tar val/ && cd val && tar -xvf ILSVRC2012_img_val.tar
+  $ wget -qO- https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh | bash
+  ```
+
+### Reproduce in 10 seconds
+
+The top 5 predictions for every example in the ImageNet validation set have been pre-computed for you [here for Keras models](https://github.com/cgnorthcutt/benchmarking-keras-pytorch/tree/master/keras_imagenet) and [here for PyTorch models](https://github.com/cgnorthcutt/benchmarking-keras-pytorch/tree/master/pytorch_imagenet). The following code will use this for you to produce Keras and PyTorch benchmarking in a few seconds:
+
 ```bash
-git clone this-repo
+$ git clone https://github.com:cgnorthcutt/imagenet-benchmarking.git
+$ cd benchmarking-keras-pytorch
+$ python imagenet_benchmarking.py /path/to/imagenet_val_data
 ```
+
+### Reproduce model outputs (hours)
+
+You can also reproduce the inference-time output of each Keras and PyTorch model without using the pre-computed data. Inerence for Keras takes a long time (5-10 hours) because I compute the forward pass on each example one at a time and avoid vectorized operations: this was the only approach I found would reliably reproduce the same accuracies. PyTorch is fairly quick (less than one hour). To reproduce:
+
+```bash
+$ git clone https://github.com:cgnorthcutt/imagenet-benchmarking.git
+$ cd benchmarking-keras-pytorch
+$ # Compute outputs of PyTorch models (1 hour)
+$ ./imagenet_pytorch_get_predictions.py /path/to/imagenet_val_data
+$ # Compute outputs of Keras models (5-10 hours)
+$ ./imagenet_keras_get_predictions.py /path/to/imagenet_val_data
+$ # View benchmark results
+$ ./imagenet_benchmarking.py /path/to/imagenet_val_data
+```
+
+You can control *GPU usage*, *batch size*, *output storage directories*, and more. Run the files with the `-h` flag to see command line argument options.
 
 ## Benchmark Results on ImageNet
 
