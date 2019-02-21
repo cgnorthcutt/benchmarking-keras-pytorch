@@ -1,4 +1,4 @@
-# Benchmarking of Keras and PyTorch Pre-Trained Models
+# Benchmarking Keras and PyTorch Pre-Trained Models
 
 Benchmarks for **every** pre-trained model in PyTorch and Keras-Tensorflow. Benchmarks are reproducible.
 
