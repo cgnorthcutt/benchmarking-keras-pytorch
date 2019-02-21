@@ -74,7 +74,7 @@ The **actual** validation set accuracies on ImageNet for all Keras and PyTorch m
 
 ### Reproduce in 10 seconds
 
-The top 5 predictions for every example in the ImageNet validation set have been pre-computed for you [here for Keras models](https://github.com/cgnorthcutt/benchmarking-keras-pytorch/tree/master/keras_imagenet) and [here for PyTorch models](https://github.com/cgnorthcutt/benchmarking-keras-pytorch/tree/master/pytorch_imagenet). The following code will use this for you to produce Keras and PyTorch benchmarking in a few seconds:
+The top 5 predictions for every example in the ImageNet validation set have been pre-computed for you [here for Keras models](https://github.com/cgnorthcutt/benchmarking-keras-pytorch/tree/master/keras_imagenet) and [here for PyTorch models](https://github.com/cgnorthcutt/benchmarking-keras-pytorch/tree/master/pytorch_imagenet). These are automatically used by the following code which takes a few seconds to run:
 
 ```bash
 $ git clone https://github.com:cgnorthcutt/imagenet-benchmarking.git
