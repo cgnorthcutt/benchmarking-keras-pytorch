@@ -99,6 +99,13 @@ $ ./imagenet_benchmarking.py /path/to/imagenet_val_data
 
 You can control *GPU usage*, *batch size*, *output storage directories*, and more. Run the files with the `-h` flag to see command line argument options.
 
+#### Tips for Keras
+
+One of the goals of this project is to help reconcile issues with reproducibility in Keras pre-trained models. The way I deal with these issues is three-fold. In Keras I 
+1. avoid batches during inference.
+2. run each example one at a time. This is silly slow, but yields a reproducible output for every model.
+3. only run models in local functions or use `with` clauses to ensure no aspects of a previous model persist in memory when the next model is loaded.
+
 ## License
 
 Copyright (c) 2019 Curtis Northcutt. Released under the MIT License. See [LICENSE](https://github.com/cgnorthcutt/imagenet_benchmarking/blob/master/LICENSE) for details.
