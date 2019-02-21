@@ -1,5 +1,4 @@
-# Reproducible ImageNet Benchmarking for Keras and PyTorch
-
+# Reproducible Benchmarking of Keras and PyTorch CNNs
 | Platform    | Model             | Acc@1 | Acc@5 | Rank@1 | Rank@5 |
 |-------------|-------------------|-------|-------|--------|--------|
 | Keras 2.2.4 | nasnetlarge       | 80.83 | 95.27 | 1      | 1      |
