@@ -1,4 +1,4 @@
-# Reproducibly Benchmarking Keras and PyTorch Models
+# Reproducible Benchmarking of Keras and PyTorch Models
 
 This project benchmarks **every** pre-trained model across both PyTorch and Keras (Tensorflow). Additionally, all benchmarks are 100% repoducible.
 
