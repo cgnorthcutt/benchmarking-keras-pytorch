@@ -66,13 +66,13 @@ parser.add_argument('-m', '--model', metavar='MODEL', default=None,
                         ' (example: resnet50)' +
                         ' (default: Runs across all PyTorch models)')
 parser.add_argument('-g', '--gpu', metavar='MODEL', default=0,
-                    help='int of GPU tO use. Only uses single GPU.')
+                    help='int of GPU to use. Only uses single GPU.')
 parser.add_argument('-b', '--batch-size', metavar='BATCHSIZE', default=32,
                     help='Number of examples to run forward pass on at once.')
 parser.add_argument('-o', '--output-dir', metavar='OUTPUTDIR', default="pytorch_imagenet/",
                     help='directory folder to store output results in.')
 parser.add_argument('--save-all-probs',  action='store_true', default = False, 
-                    help='Store entire softmax output for all examples (200 MB)')
+                    help='Store entire softmax output for all examples (100 MB)')
 
 
 # In[23]:
@@ -127,7 +127,7 @@ def process_model(
     are stored in the pytorch_imagenet/ output directory.'''
     
     # Load PyTorch model pre-trained on ImageNet
-    exec("model = models.{}(pretrained=True)".format(model_name))
+    model = eval("models.{}(pretrained=True)".format(model_name))
     # Send the model to GPU/CPU
     model = model.to(device)
     wfn_base = os.path.join(out_dir, model_name + "_pytorch_imagenet_")
@@ -160,7 +160,7 @@ def process_model(
     
     # Save top 5 predictions and associated probabilities
     np.save(wfn_base + "top5preds.npy", top)
-    np.save(wfn_base + "top5probs.npy", top_probs)
+    np.save(wfn_base + "top5probs.npy", top_probs.astype(np.float16))
 
 
 # In[ ]:
