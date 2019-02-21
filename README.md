@@ -1,4 +1,4 @@
-# Reproducible ImageNet Benchmarking of Pre-trained Keras and PyTorch models.
+# Reproducible ImageNet Benchmarking for Keras and PyTorch.
 
 ## License
 
