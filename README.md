@@ -1,4 +1,4 @@
-# Reproducible ImageNet Benchmarking for Keras and PyTorch.
+# Reproducible ImageNet Benchmarking for Keras and PyTorch
 
 ## License
 
