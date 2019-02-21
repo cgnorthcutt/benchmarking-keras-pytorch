@@ -12,7 +12,7 @@ Additionally, this project serves to combine Keras and PyTorch benchmarks into a
 
 For researchers who are trying out these models, a reproducible benchmark is helpful as a standard with which to start new projects as well as debugging current implementations. This project is intended to serve that purpose.
 
-## Usage
+## To Reproduce
 
 ```bash
 git clone this-repo
