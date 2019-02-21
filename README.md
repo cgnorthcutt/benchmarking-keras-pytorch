@@ -1,6 +1,22 @@
-# Reproducible Benchmarking of Keras and PyTorch CNNs
+# Reproducibly Benchmarking Keras and PyTorch Models
 
-# Benchmark on Pre-trained ImageNet Models
+This project benchmarks **every** pre-trained model across both PyTorch and Keras (Tensorflow). Additionally, all benchmarks are 100% repoducible.
+
+## Why this is helpful
+
+There are hundreds of posts struggling with obtaining reproducible benchmarks of the accuracy of pre-trained models on ImageNet, particulary for Keras-Tensorflow. Some examples are [here1](https://github.com/keras-team/keras/issues/10040), [here2](https://github.com/keras-team/keras/issues/10979), [here3](http://blog.datumbox.com/the-batch-normalization-layer-of-keras-is-broken/), [here4](https://github.com/keras-team/keras/issues/8672), and [here5](https://github.com/keras-team/keras/issues/7848). 
+
+In Keras, this is further complicated by the fact that the [published benchmarks](https://keras.io/applications/#documentation-for-individual-models) on [Keras Applications](https://keras.io/applications/) cannot be reproduced by exactly copying the associated code. In fact, the reported accuracies are nearly always higher than the actual accuries.
+
+For researchers who are trying out these models, a reproducible benchmark is helpful as a standard with which to start new projects as well as debugging current implementations. This project is intended to serve that purpose.
+
+## Usage
+
+```bash
+git clone this-repo
+```
+
+## Benchmark Results on ImageNet
 
 | Platform    | Model             | Acc@1 | Acc@5 | Rank@1 | Rank@5 |
 |-------------|-------------------|-------|-------|--------|--------|
