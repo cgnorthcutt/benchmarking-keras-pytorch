@@ -84,7 +84,7 @@ $ python imagenet_benchmarking.py /path/to/imagenet_val_data
 
 ### Reproduce model outputs (hours)
 
-You can also reproduce the inference-time output of each Keras and PyTorch model without using the pre-computed data. Inerence for Keras takes a long time (5-10 hours) because I compute the forward pass on each example one at a time and avoid vectorized operations: this was the only approach I found would reliably reproduce the same accuracies. PyTorch is fairly quick (less than one hour). To reproduce:
+You can also reproduce the inference-time output of each Keras and PyTorch model without using the pre-computed data. Inference for Keras takes a long time (5-10 hours) because I compute the forward pass on each example one at a time and avoid vectorized operations: this was the only approach I found would reliably reproduce the same accuracies. PyTorch is fairly quick (less than one hour). To reproduce:
 
 ```bash
 $ git clone https://github.com:cgnorthcutt/imagenet-benchmarking.git
