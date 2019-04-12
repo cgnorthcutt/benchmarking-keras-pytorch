@@ -16,6 +16,7 @@ import argparse
 import numpy as np
 import os
 import sys
+from PIL import Image
 
 # Use PyTorch/torchvision for dataloading (more reliable/faster)
 from torchvision import datasets
@@ -149,11 +150,11 @@ def main(args = parser.parse_args()):
     # Create output directory if it does not exist
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-        
+
     # Grab imagenet data
     val_dataset = datasets.ImageFolder(args.val_dir)
     img_paths, labels = (list(t) for t in zip(*val_dataset.imgs))
-        
+
     # Run forward pass inference on all models for all examples in val set.
     models = keras_models if args.model is None else [args.model]
     for model in models:
@@ -175,6 +176,23 @@ def main(args = parser.parse_args()):
 
 
 # In[9]:
+
+def crop_center(img, target_size):
+    # target_size is assumed to be in network's order (H, W)
+    w, h = img.size
+    cx = w // 2
+    cy = h // 2
+    left = cx - target_size[1] // 2
+    top = cy - target_size[0] // 2
+    return img.crop((left, top, left + target_size[1], top + target_size[0]))
+
+
+def shortest_edge_scale(img, target_size, scale):
+    # target_size is assumed to be in network's order (H, W)
+    w, h = img.size
+    nw = int(w * target_size[1] / scale) // min((w, h))
+    nh = int(h * target_size[0] / scale) // min((w, h))
+    return img.resize((nw, nh), resample=Image.BILINEAR)
 
 
 def process_model(
@@ -201,16 +219,31 @@ def process_model(
 
     # Create Keras model
     model = Model(weights='imagenet')
-    
+
     # Preprocessing and Forward pass through validation set.
     probs = []
+    inputs = []
+    batch_size = 64
     for i, img_path in enumerate(img_paths):
-        if i % 32 == 0:
+        img = image.load_img(img_path, target_size=None)
+        img = shortest_edge_scale(img, img_size, 0.875)
+        img = crop_center(img, img_size)
+        img = np.expand_dims(image.img_to_array(img), axis=0)
+        inputs.append(img)
+
+        current_batch = 0
+        if i % (batch_size + 1) == 0:
+            current_batch = batch_size
+        elif i == len(img_paths) - 1:
+            current_batch = len(img_paths) % batch_size
+
+        if current_batch:
+            inputs = np.concatenate(inputs, axis=0)
+            probs.append(model.predict_on_batch(preprocess_model(inputs)))
             print("\r{} completed: {:.2%}".format(model_name, i / len(img_paths)), end="")
             sys.stdout.flush()
-        img = image.load_img(img_path, target_size=img_size)
-        img = np.expand_dims(image.img_to_array(img), axis=0)            
-        probs.append(model.predict(preprocess_model(img)))
+            inputs = []
+
     probs = np.vstack(probs)
     if save_all_probs:
         np.save(wfn_base + "probs.npy", probs.astype(np.float16))
