@@ -132,7 +132,7 @@ def process_model(
     model = model.to(device)
     wfn_base = os.path.join(out_dir, model_name + "_pytorch_imagenet_")
     probs, labels = [], []
-    loader = dataloaders[299] if model_name is "inception_v3" else dataloaders[224]
+    loader = dataloaders[299] if model_name == "inception_v3" else dataloaders[224]
     
     # Inference, with no gradient changing
     model.eval() # set model to inference mode (not train mode)
