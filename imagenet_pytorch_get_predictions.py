@@ -92,7 +92,7 @@ def main(args = parser.parse_args()):
     dataloaders = {}
     for img_size in [224, 299]:
         val_transform = transforms.Compose([
-            transforms.Resize(256),
+            transforms.Resize(img_size // 0.875),
             transforms.CenterCrop(img_size),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
