@@ -67,7 +67,7 @@ parser.add_argument('-m', '--model', metavar='MODEL', default=None,
                         ' (default: Runs across all PyTorch models)')
 parser.add_argument('-g', '--gpu', metavar='MODEL', default=0,
                     help='int of GPU to use. Only uses single GPU.')
-parser.add_argument('-b', '--batch-size', metavar='BATCHSIZE', default=32,
+parser.add_argument('-b', '--batch-size', metavar='BATCHSIZE', type=int, default=32,
                     help='Number of examples to run forward pass on at once.')
 parser.add_argument('-o', '--output-dir', metavar='OUTPUTDIR', default="pytorch_imagenet/",
                     help='directory folder to store output results in.')
