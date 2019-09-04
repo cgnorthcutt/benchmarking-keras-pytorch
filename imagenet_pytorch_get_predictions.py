@@ -5,7 +5,9 @@
 
 
 # These imports enhance Python2/3 compatibility.
-from __future__ import print_function, absolute_import, division, unicode_literals, with_statement
+from __future__ import (
+    print_function, absolute_import, division, unicode_literals, with_statement
+)
 
 
 # In[13]:
@@ -67,12 +69,15 @@ parser.add_argument('-m', '--model', metavar='MODEL', default=None,
                         ' (default: Runs across all PyTorch models)')
 parser.add_argument('-g', '--gpu', metavar='MODEL', default=0,
                     help='int of GPU to use. Only uses single GPU.')
-parser.add_argument('-b', '--batch-size', metavar='BATCHSIZE', type=int, default=32,
+parser.add_argument('-b', '--batch-size', metavar='BATCHSIZE', default=32,
                     help='Number of examples to run forward pass on at once.')
-parser.add_argument('-o', '--output-dir', metavar='OUTPUTDIR', default="pytorch_imagenet/",
+parser.add_argument('-o', '--output-dir', metavar='OUTPUTDIR',
+                    default="pytorch_imagenet/",
                     help='directory folder to store output results in.')
 parser.add_argument('--save-all-probs',  action='store_true', default = False, 
-                    help='Store entire softmax output for all examples (100 MB)')
+                    help='Store entire softmax output of all examples (100 MB)')
+parser.add_argument('--save-labels', action='store_true', default = False, 
+                    help='Store labels')
 
 
 # In[23]:
@@ -108,7 +113,8 @@ def main(args = parser.parse_args()):
     # Run forward pass inference on all models for all examples in val set.
     models = pytorch_models if args.model is None else [args.model]
     for model in models:
-        process_model(model, dataloaders, args.output_dir, args.save_all_probs)
+        process_model(model, dataloaders, args.output_dir,
+                      args.save_all_probs, args.save_labels)
 
 
 # In[ ]:
@@ -119,6 +125,7 @@ def process_model(
     dataloaders,
     out_dir = "pytorch_imagenet/",
     save_all_probs = False,
+    save_labels = False,
 ):
     '''Actual work is done here. This runs inference on a pyTorch model,
     using the pyTorch batch loader.
@@ -132,13 +139,17 @@ def process_model(
     model = model.to(device)
     wfn_base = os.path.join(out_dir, model_name + "_pytorch_imagenet_")
     probs, labels = [], []
-    loader = dataloaders[299] if model_name == "inception_v3" else dataloaders[224]
+    if model_name is "inception_v3":
+        loader = dataloaders[299]
+    else:
+        loader = dataloaders[224]
     
     # Inference, with no gradient changing
     model.eval() # set model to inference mode (not train mode)
     with torch.set_grad_enabled(False):
         for i, (x_val, y_val) in enumerate(loader):
-            print("\r{} completed: {:.2%}".format(model_name, i / len(loader)), end="")
+            print("\r{} completed: {:.2%}".format(
+                model_name, i / len(loader)), end="")
             sys.stdout.flush()
             out = torch.nn.functional.softmax(model(x_val.to(device)), dim=1)
             probs.append(out.numpy() if device == 'cpu' else out.cpu().numpy())
@@ -147,6 +158,8 @@ def process_model(
     # Convert batches to single numpy arrays    
     probs = np.stack([p for l in probs for p in l])
     labels = np.array([t for l in labels for t in l])
+    if save_labels:
+        np.save(wfn_base + "labels.npy", labels.astype(int))
     if save_all_probs:
         np.save(wfn_base + "probs.npy", probs.astype(np.float16))
     
@@ -154,8 +167,10 @@ def process_model(
     n = 5
     top = np.argpartition(-probs, n, axis = 1)[:,:n]
     top_probs = probs[np.arange(probs.shape[0])[:, None], top]
-    acc1 = sum(top[range(len(top)), np.argmax(top_probs, axis = 1)] == labels) / float(len(labels))
-    acc5 = sum([labels[i] in row for i, row in enumerate(top)]) / float(len(labels))
+    right1 = sum(top[range(len(top)), np.argmax(top_probs, axis = 1)] == labels)
+    acc1 = right1 / float(len(labels))
+    count5 = sum([labels[i] in row for i, row in enumerate(top)])
+    acc5 = count5 / float(len(labels))
     print('\n{}: acc1: {:.2%}, acc5: {:.2%}'.format(model_name, acc1, acc5))
     
     # Save top 5 predictions and associated probabilities
