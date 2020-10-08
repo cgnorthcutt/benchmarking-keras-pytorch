@@ -1,25 +1,14 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
 
 # These imports enhance Python2/3 compatibility.
 from __future__ import print_function, absolute_import, division, unicode_literals, with_statement
-
-
-# In[ ]:
-
 
 import numpy as np
 import os
 import argparse
 from torchvision import datasets
+import pandas as pd
+
 VAL_SIZE = 50000
-
-
-# In[ ]:
-
 
 models = {
     "keras" : [
@@ -63,41 +52,53 @@ models = {
 }
 
 
-# In[ ]:
-
-
 # Set up argument parser
 parser = argparse.ArgumentParser(description='PyTorch and Keras ImageNet Benchmarking')
 parser.add_argument('val_dir', metavar='DIR',
                     help='path to imagenet val dataset folder')
-parser.add_argument('-k', '--keras-dir', metavar='MODEL', default= "keras_imagenet/",
+parser.add_argument('-k', '--keras-dir', metavar='MODEL', default="keras_imagenet/",
                     help='directory where Keras model outputs are stored.')
-parser.add_argument('-p', '--pytorch-dir', metavar='MODEL', default= "pytorch_imagenet/",
+parser.add_argument('-p', '--pytorch-dir', metavar='MODEL', default="pytorch_imagenet/",
                     help='directory where PyTorch model outputs are stored.')
-parser.add_argument('-i', '--indices_to_omit', metavar='INDICES_TO_OMIT', default= None,
-                    help='directory of .npy file of storing val indices to omit.')
+parser.add_argument('-o', '--output-dir', metavar='MODEL',
+                    default="benchmarking_results.csv",
+                    help='csv filename to store the benchmarking csv results.')
+parser.add_argument('-i', '--indices_to_omit', metavar='INDICES_TO_OMIT', default=None,
+                    help='path of numpy .npy file of storing val indices to omit.'
+                         'ONLY ONE of --indices_to_omit and --indices_to_keep'
+                         'may be used. DO NOT USE BOTH.')
+parser.add_argument('-j', '--indices_to_keep', default=None,
+                    help='path of numpy .npy file of storing val indices to use.'
+                         'ONLY ONE of --indices_to_omit and --indices_to_keep'
+                         'may be used. DO NOT USE BOTH.')
+parser.add_argument('-l', '--custom_labels', default=None,
+                    help='path of numpy .npy file storing custom labels.'
+                         'Must match same length as sum(indices_to_keep)'
+                         'if indices_to_keep is specfied (similarly to '
+                         'indices_to_omit)')
 
 
-# In[ ]:
-
-
-def compute_val_acc(top5preds, top5probs, labels, indices_to_ignore = None):
+def compute_val_acc(top5preds, top5probs, labels, indices_to_ignore=None,
+                    indices_to_keep=None, custom_labels=None):
     # Create a mask of having True for each example we want to include in scoring.
     bool_mask = np.ones(VAL_SIZE).astype(bool)
     if indices_to_ignore is not None:
         bool_mask[indices_to_ignore] = False
+    if indices_to_keep is not None:
+        bool_mask = np.zeros(VAL_SIZE).astype(bool)
+        bool_mask[indices_to_keep] = True
+    if custom_labels is not None:
+        true = np.asarray(custom_labels)
+    else:        
+        true = labels[bool_mask]
     pred = top5preds[range(len(top5preds)), np.argmax(top5probs, axis = 1)]
     pred = pred[bool_mask]
-    true = labels[bool_mask]
     acc1 = sum(pred == true) / float(len(true))
     acc5 = sum([true[i] in row for i, row in enumerate(top5preds[bool_mask])]) / float(len(true))
     return acc1, acc5
 
 
-# In[ ]:
-
-
-def main(args = parser.parse_args()):
+def main(args=parser.parse_args()):
     
     # Grab imagenet data
     val_dataset = datasets.ImageFolder(args.val_dir)
@@ -106,6 +107,22 @@ def main(args = parser.parse_args()):
     
     if args.indices_to_omit:
         indices_to_omit = np.load(args.indices_to_omit)
+        print('Only computing scores for {} of {} labels.'.format(
+            len(labels) - len(indices_to_omit), len(labels),
+        ))
+    else:
+        indices_to_omit = None
+    if args.indices_to_keep:
+        indices_to_keep = np.load(args.indices_to_keep)
+        print('Only computing scores for {} of {} labels.'.format(
+            len(indices_to_keep), len(labels),
+        ))
+    else:
+        indices_to_keep = None
+    if args.custom_labels:
+        custom_labels = np.load(args.custom_labels)
+    else:
+        custom_labels = None
         
     dirs = {
         "keras" : args.keras_dir,
@@ -122,45 +139,61 @@ def main(args = parser.parse_args()):
         for model in models[platform]:
             top5preds = np.load(os.path.join(dirs[platform], model + pred_suffix))
             top5probs = np.load(os.path.join(dirs[platform], model + prob_suffix))
-            acc1, acc5 = compute_val_acc(top5preds, top5probs, labels)
-            if args.indices_to_omit:
-                acc1c, acc5c = compute_val_acc(top5preds, top5probs, labels, indices_to_omit)
+            acc1, acc5 = compute_val_acc(top5preds, top5probs, labels,
+                                         indices_to_omit, indices_to_keep)
+            if args.custom_labels:
+                acc1c, acc5c = compute_val_acc(top5preds, top5probs, labels,
+                        indices_to_omit, indices_to_keep, custom_labels)
                 data.append((platform_name, model, acc1, acc1c, acc5, acc5c))
             else:            
                 data.append((platform_name, model, acc1, acc5))
-
-    # Order final accuracies
-    data.sort(key=lambda x: x[2], reverse = True)
-
-    # Compute ranking for each column in data
-    ranks = [list(np.argsort(z)[::-1] + 1) for z in [list(z) for z in zip(*data)][2:]]
-    data = list(zip(*[list(z) for z in zip(*data)] + ranks))
-
-    #### Print results
-    if args.indices_to_omit is None:        
-        header_row = ("{:<13}{:<19}{:<8}{:<8}{:<8}{:<8}")
-        print(header_row.format("Platform", "Model", "Acc@1", "Acc@5", "Rank@1", "Rank@5"))
-        print(header_row.format("-----", "-----", "-----", "------", "------", "-------"))
-        data_row = ("{:<13}{:<19}{:<8.2%}{:<8.2%}{:<8}{:<8}")
+    if args.custom_labels:
+        cols = ["Platform", "Model", "Acc@1", "cAcc@1", "Acc@5", "cAcc@5",]
     else:
-        header_row = ("{:<13}{:<19}{:<8}{:<8}{:<8}{:<8}{:<8}{:<8}{:<8}{:<8}")
-        print(header_row.format("Platform", "Model", "Acc@1", "cAcc@1", "Acc@5", "cAcc@5", "Rank@1", "cRank@5", "Rank@5", "cRank@5"))
-        print(header_row.format("-----", "-----", "-----", "------", "-----", "------", "------", "-------", "------", "-------"))
-        data_row = ("{:<13}{:<19}{:<8.2%}{:<8.2%}{:<8.2%}{:<8.2%}{:<8}{:<8}{:<8}{:<8}")
+        cols = ["Platform", "Model", "Acc@1", "Acc@5",]
+    df = pd.DataFrame(data, columns=cols)
+    # Add rankings for each accuracy mettric
+    for col in [c for c in df.columns if 'Acc' in c]:
+        df.sort_values(by=col, ascending=False, inplace=True)
+        df[col.replace('Acc', 'Rank')] = np.arange(len(df)) + 1
+    # Final sort by Acc@1 column
+    df.sort_values(by="cAcc@1", ascending=False, inplace=True)
+    df = df.reset_index(drop=True)
+    df.to_csv(args.output_dir, index=False)
+    print(df)
+
+# Old version of printing and storing results,
+#   temporarily kept here for longetivity. Now we use pandas to print the csv.
+
+#     # Order final accuracies
+#     data.sort(key=lambda x: x[2], reverse=True)
+
+#     # Compute ranking for each column in data
+#     ranks = [list(np.argsort(z)[::-1] + 1) for z in [list(z) for z in zip(*data)][2:]]
+#     data = list(zip(*[list(z) for z in zip(*data)] + ranks))
+#     print(pd.DataFrame(data))
+
+#     #### Print results
+#     if args.indices_to_omit is None and args.indices_to_keep is None:        
+#         header_row = ("{:<13}{:<19}{:<8}{:<8}{:<8}{:<8}")
+#         print(header_row.format("Platform", "Model", "Acc@1", "Acc@5", "Rank@1", "Rank@5"))
+#         print(header_row.format("-----", "-----", "-----", "------", "------", "-------"))
+#         data_row = ("{:<13}{:<19}{:<8.2%}{:<8.2%}{:<8}{:<8}")
+#     else:
+#         header_row = ("{:<13}{:<19}{:<8}{:<8}{:<8}{:<8}{:<8}{:<8}{:<8}{:<8}")
+#         print(header_row.format("Platform", "Model", "Acc@1", "cAcc@1", "Acc@5", "cAcc@5", "Rank@1", "cRank@5", "Rank@5", "cRank@5"))
+#         print(header_row.format("-----", "-----", "-----", "------", "-----", "------", "------", "-------", "------", "-------"))
+#         data_row = ("{:<13}{:<19}{:<8.2%}{:<8.2%}{:<8.2%}{:<8.2%}{:<8}{:<8}{:<8}{:<8}")
         
-    for d in data:
-        print(data_row.format(*d))
-
-
-# In[ ]:
+#     for d in data:
+#         print(data_row.format(*d))
 
 
 if __name__ == '__main__':
     main()
 
 
-# In[ ]:
-
+# Example output:
 
 # Platform     Model              Acc@1   Acc@5   Rank@1  Rank@5
 # -----        -----              -----   ------  ------  -------
