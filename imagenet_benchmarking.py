@@ -78,6 +78,22 @@ parser.add_argument('-l', '--custom_labels', default=None,
                          'indices_to_omit)')
 
 
+# Important notes about how this works in terms of 
+#  --indices_to_omit, --indices_to_keep, and --custom_labels
+# The algorithm:
+# if no custom labels and mask1 or mask2 given
+# - compute acc1, acc5 using full
+# - compute cacc1, cacc5 using mask
+# if custom labels and mask1 or mask2 given
+# - compute acc1, acc5 using mask
+# - compute cacc1, cacc5 using mask + custom labels
+# if no custome labels and no mask given
+# - compute acc1, acc5
+# if custome labels and no mask given
+# - compute acc1, acc5
+# -compute cacc1, cacc5 using custom labels
+
+
 def compute_val_acc(top5preds, top5probs, labels, indices_to_ignore=None,
                     indices_to_keep=None, custom_labels=None):
     # Create a mask of having True for each example we want to include in scoring.
@@ -99,6 +115,17 @@ def compute_val_acc(top5preds, top5probs, labels, indices_to_ignore=None,
 
 
 def main(args=parser.parse_args()):
+    '''if no custom labels and mask1 or mask2 given
+    - compute acc1, acc5 using full
+    - compute cacc1, cacc5 using mask
+    if custom labels and mask1 or mask2 given
+    - compute acc1, acc5 using mask
+    - compute cacc1, cacc5 using mask + custom labels
+    if no custome labels and no mask given
+    - compute acc1, acc5
+    if custome labels and no mask given
+    - compute acc1, acc5
+    -compute cacc1, cacc5 using custom labels'''
     
     # Grab imagenet data
     val_dataset = datasets.ImageFolder(args.val_dir)
@@ -139,15 +166,33 @@ def main(args=parser.parse_args()):
         for model in models[platform]:
             top5preds = np.load(os.path.join(dirs[platform], model + pred_suffix))
             top5probs = np.load(os.path.join(dirs[platform], model + prob_suffix))
-            acc1, acc5 = compute_val_acc(top5preds, top5probs, labels,
-                                         indices_to_omit, indices_to_keep)
-            if args.custom_labels:
+            if 'nasnet' in model:
+                pred = top5preds[range(len(top5preds)), np.argmax(top5probs, axis = 1)]
+                np.save('nasnet_correct_mask', pred == labels)
+            # This code is just computing accuracy first with as few
+            # modifications to the original val set as possible and then again
+            # will all modifications.
+            if args.custom_labels is None and (args.indices_to_omit or args.indices_to_keep):
+                acc1, acc5 = compute_val_acc(top5preds, top5probs, labels)                
+                acc1c, acc5c = compute_val_acc(top5preds, top5probs, labels,
+                        indices_to_omit, indices_to_keep)
+            elif args.custom_labels and (args.indices_to_omit or args.indices_to_keep):
+                acc1, acc5 = compute_val_acc(top5preds, top5probs, labels,
+                        indices_to_omit, indices_to_keep)                
                 acc1c, acc5c = compute_val_acc(top5preds, top5probs, labels,
                         indices_to_omit, indices_to_keep, custom_labels)
+            elif args.custom_labels and not (args.indices_to_omit or args.indices_to_keep):
+                acc1, acc5 = compute_val_acc(top5preds, top5probs, labels)                
+                acc1c, acc5c = compute_val_acc(top5preds, top5probs, labels,
+                        custom_labels)
+            else:  # args.custom_labels is None and not (args.indices_to_omit or args.indices_to_keep):
+                acc1, acc5 = compute_val_acc(top5preds, top5probs, labels,
+                        indices_to_omit, indices_to_keep)
+            if args.custom_labels or args.indices_to_omit or args.indices_to_keep:
                 data.append((platform_name, model, acc1, acc1c, acc5, acc5c))
             else:            
                 data.append((platform_name, model, acc1, acc5))
-    if args.custom_labels:
+    if args.custom_labels or args.indices_to_omit or args.indices_to_keep:
         cols = ["Platform", "Model", "Acc@1", "cAcc@1", "Acc@5", "cAcc@5",]
     else:
         cols = ["Platform", "Model", "Acc@1", "Acc@5",]
@@ -157,11 +202,14 @@ def main(args=parser.parse_args()):
         df.sort_values(by=col, ascending=False, inplace=True)
         df[col.replace('Acc', 'Rank')] = np.arange(len(df)) + 1
     # Final sort by Acc@1 column
-    df.sort_values(by="cAcc@1", ascending=False, inplace=True)
+    if args.custom_labels:
+        df.sort_values(by="cAcc@1", ascending=False, inplace=True)
+    else:
+        df.sort_values(by="Acc@1", ascending=False, inplace=True)
     df = df.reset_index(drop=True)
     df.to_csv(args.output_dir, index=False)
     print(df)
-
+    
 # Old version of printing and storing results,
 #   temporarily kept here for longetivity. Now we use pandas to print the csv.
 
