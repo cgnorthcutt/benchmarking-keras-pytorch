@@ -105,7 +105,7 @@ def compute_val_acc(top5preds, top5probs, labels, indices_to_ignore=None,
         bool_mask[indices_to_keep] = True
     if custom_labels is not None:
         true = np.asarray(custom_labels)
-    else:        
+    else:
         true = labels[bool_mask]
     pred = top5preds[range(len(top5preds)), np.argmax(top5probs, axis = 1)]
     pred = pred[bool_mask]
@@ -131,7 +131,6 @@ def main(args=parser.parse_args()):
     val_dataset = datasets.ImageFolder(args.val_dir)
     img_paths, labels = (list(t) for t in zip(*val_dataset.imgs))
     labels = np.asarray(labels)
-    
     if args.indices_to_omit:
         indices_to_omit = np.load(args.indices_to_omit)
         print('Only computing scores for {} of {} labels.'.format(
