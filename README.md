@@ -106,6 +106,23 @@ One of the goals of this project is to help reconcile issues with reproducibilit
 2. run each example one at a time. This is silly slow, but yields a reproducible output for every model.
 3. only run models in local functions or use `with` clauses to ensure no aspects of a previous model persist in memory when the next model is loaded.
 
+#### Example use cases from Pervasive Label Errors Paper
+
+
+```bash
+# Compare standard benchmarking versus cleaned and corrected benchmarking
+# Requires providing index of all test examples EXCEPT non-consensus errors (ambiguous or multi-class)
+# Requires providing the labels of the remaining test examples, including the corrected labels of the honeypot.
+for consensus in {3..5}; do python imagenet_benchmarking.py -p pytorch_imagenet -o imagenet_benchmarks/cleaned_and_corrected_$consensus.csv -j /home/cgn/cgn/label-errors/experiments/mturk_processing/imagenet_masks/cleaned_and_corrected_labels_idx_$consensus.npy -l /home/cgn/cgn/label-errors/experiments/mturk_processing/imagenet_masks/cleaned_and_corrected_labels_$consensus.npy /datasets/datasets/imagenet/val; done
+
+# Honeypot benchmarking -- consensus corected labels versus original labels
+for consensus in {3..5}; do python imagenet_benchmarking.py -p pytorch_imagenet -o imagenet_benchmarks/consensus$consensus.csv -j /home/cgn/cgn/label-errors/experiments/mturk_processing/imagenet_masks/mturk_actual_labels_idx_$consensus.npy -l /home/cgn/cgn/label-errors/experiments/mturk_processing/imagenet_masks/mturk_actual_labels_$consensus.npy /datasets/datasets/imagenet/val; done
+
+# ANOTHER AN EXAMPLE -- THIS RESULT IS NOT IN THE PAPER
+# Compare standard benchmarking versus cleaned benchmarking
+for consensus in {3..5}; do python imagenet_benchmarking.py -p pytorch_imagenet -o imagenet_benchmarks/test_noise_removed_$consensus.csv -i /home/cgn/cgn/label-errors/experiments/mturk_processing/imagenet_masks/mturk_noise_indices_$consensus.npy /datasets/datasets/imagenet/val; done
+```
+
 ## License
 
 Copyright (c) 2019 Curtis Northcutt. Released under the MIT License. See [LICENSE](https://github.com/cgnorthcutt/imagenet_benchmarking/blob/master/LICENSE) for details.
